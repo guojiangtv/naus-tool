@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set ADDR [lindex $argv 0]
+set USER [lindex $argv 1]
+set PASS [lindex $argv 2]
+set CMMD [lindex $argv 3]
+
+if { [lindex $argv 4] != "" } {
+    set timeout [lindex $argv 4]
+} else {
+    set timeout 30
+}
+
+spawn ssh -oStrictHostKeyChecking=no -q -l$USER ${ADDR}
+
+expect {
+    timeout {puts "ssh timeout(1)";exit 1}
+    "*assword*" {send "${PASS}\r"}
+}
+
+expect {
+    timeout {puts "ssh timeout(2)";exit 1}
+    -re "(${USER}@.*:.*)\[\$#]" {
+        set PS1 $expect_out(1,string)
+        send "${CMMD}\r"
+    }
+}
+
+expect {
+    timeout {puts "execute command timeout";exit 1}
+    $PS1 {send "exit\r"}
+}
+
+expect eof
+puts "excute ${CMMD} on $ADDR ok!\r"
+exit 0
